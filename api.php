@@ -1,28 +1,31 @@
 <?php
+// configuramos para mostrar solo errores graves 
 error_reporting(E_ERROR | E_PARSE);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/error.log');
 
 header("Content-Type: application/json");
-// Cargar configuracion
+
+// se carga la configuracion de la base de datos desde un archivo externo
 $config = require 'config.php';
 
+// se conecta con la base de datos
 try {
     $pdo = new PDO(
         "pgsql:host={$config['db_host']};dbname={$config['db_name']}",
         $config['db_user'],
         $config['db_pass']
     );
-    // Para que lance excepciones en errores SQL
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Error al conectar con la base de datos: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'error al conectar con la base de datos: ' . $e->getMessage()]);
     exit;
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
+// Obtenemos la ruta enviada por GET para saber que recurso se esta solicitando
 $path = explode("/", $_GET['path'] ?? '');
 
 if ($path[0] === 'tareas') {
@@ -43,14 +46,13 @@ if ($path[0] === 'tareas') {
         }
     } elseif ($method === 'POST') {
         $data = json_decode(file_get_contents("php://input"), true);
-        error_log("Datos recibidos POST: " . print_r($data, true));
-
         if (!is_array($data)) {
             http_response_code(400);
-            echo json_encode(['error' => 'Datos JSON inválidos o vacíos']);
+            echo json_encode(['error' => 'Datos json invalidos o vacios']);
             exit;
         }
 
+        // verificamos que se hayan enviado todos los campos obligatorios
         if (
             empty($data['titulo']) ||
             empty($data['descripcion']) ||
@@ -58,25 +60,35 @@ if ($path[0] === 'tareas') {
             empty($data['usuario_id'])
         ) {
             http_response_code(400);
-            echo json_encode(['error' => 'Faltan datos obligatorios']);
+            echo json_encode(['error' => 'Falta datos por completar']);
+            exit;
+        }
+
+        // Validar que el usuario exista
+        $stmtUser = $pdo->prepare("SELECT COUNT(*) FROM usuarios WHERE id = ?");
+        $stmtUser->execute([$data['usuario_id']]);
+        $existeUsuario = $stmtUser->fetchColumn();
+
+        if (!$existeUsuario) {
+            http_response_code(400);
+            echo json_encode(['error' => "El usuario con id {$data['usuario_id']} no existe"]);
             exit;
         }
 
         try {
+            // insertamos la nueva tarea en la base de datos
             $stmt = $pdo->prepare("INSERT INTO tareas (titulo, descripcion, estado, usuario_id) VALUES (?, ?, ?, ?)");
             $stmt->execute([$data['titulo'], $data['descripcion'], $data['estado'], $data['usuario_id']]);
             echo json_encode(["mensaje" => "Tarea creada"]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['error' => 'Error al insertar tarea: ' . $e->getMessage()]);
+            echo json_encode(['error' => 'error al insertar tarea: ' . $e->getMessage()]);
         }
     } elseif ($method === 'PUT' && isset($path[1])) {
         $data = json_decode(file_get_contents("php://input"), true);
-        error_log("Datos recibidos PUT: " . print_r($data, true));
-
         if (!is_array($data)) {
             http_response_code(400);
-            echo json_encode(['error' => 'Datos JSON inválidos o vacíos']);
+            echo json_encode(['error' => 'Datos json invalidos o vacios']);
             exit;
         }
 
@@ -91,12 +103,13 @@ if ($path[0] === 'tareas') {
         }
 
         try {
+            // actualizamos la tarea con los nuevos datos
             $stmt = $pdo->prepare("UPDATE tareas SET titulo=?, descripcion=?, estado=? WHERE id=?");
             $stmt->execute([$data['titulo'], $data['descripcion'], $data['estado'], $path[1]]);
             echo json_encode(["mensaje" => "Tarea actualizada"]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['error' => 'Error al actualizar tarea: ' . $e->getMessage()]);
+            echo json_encode(['error' => 'error al actualizar tarea: ' . $e->getMessage()]);
         }
     } elseif ($method === 'DELETE' && isset($path[1])) {
         try {
@@ -105,13 +118,15 @@ if ($path[0] === 'tareas') {
             echo json_encode(["mensaje" => "Tarea eliminada"]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['error' => 'Error al eliminar tarea: ' . $e->getMessage()]);
+            echo json_encode(['error' => 'error al eliminar tarea: ' . $e->getMessage()]);
         }
+        // si no coincide ninguna ruta devuelve un error 404
     } else {
         http_response_code(404);
-        echo json_encode(["error" => "Ruta no encontrada"]);
+        echo json_encode(["error" => "ruta no encontrada"]);
     }
+    // si la ruta no comienza con tareas devolvemos error 404
 } else {
     http_response_code(404);
-    echo json_encode(["error" => "Ruta no encontrada"]);
+    echo json_encode(["error" => "ruta no encontrada"]);
 }
