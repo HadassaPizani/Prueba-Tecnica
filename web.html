@@ -4,252 +4,212 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Gestión de Tareas</title>
-    <style>
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f7f9fc;
-        margin: 0;
-        padding: 20px;
-        color: #333;
-        max-width: 700px;
-        margin-left: auto;
-        margin-right: auto;
-      }
-      h1,
-      h2 {
-        color: #1e40af;
-        margin-bottom: 16px;
-      }
-      #tareas {
-        margin-bottom: 40px;
-      }
-      .tarea {
-        background-color: #fff;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        padding: 15px 20px;
-        margin-bottom: 12px;
-        box-shadow: 0 2px 4px rgb(0 0 0 / 0.1);
-      }
-      .tarea strong {
-        font-size: 1.2em;
-        display: block;
-        margin-bottom: 8px;
-        color: #2563eb;
-      }
-      .tarea p {
-        margin: 5px 0;
-      }
-      .estado {
-        font-weight: 600;
-        color: #047857;
-      }
-      .buttons {
-        margin-top: 12px;
-      }
-      button {
-        cursor: pointer;
-        border: none;
-        border-radius: 4px;
-        padding: 7px 14px;
-        font-size: 0.9em;
-        margin-right: 8px;
-        transition: background-color 0.2s ease;
-      }
-      button.completar {
-        background-color: #2563eb;
-        color: white;
-      }
-      button.completar:hover {
-        background-color: #1d4ed8;
-      }
-      button.eliminar {
-        background-color: #dc2626;
-        color: white;
-      }
-      button.eliminar:hover {
-        background-color: #b91c1c;
-      }
-      form {
-        background-color: #fff;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        padding: 20px;
-        box-shadow: 0 2px 4px rgb(0 0 0 / 0.05);
-      }
-      form input[type="text"],
-      form textarea,
-      form input[type="number"] {
-        width: 100%;
-        padding: 10px;
-        margin-bottom: 14px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 1em;
-        resize: vertical;
-        box-sizing: border-box;
-        font-family: inherit;
-      }
-      form button[type="submit"] {
-        background-color: #2563eb;
-        color: white;
-        padding: 10px 18px;
-        font-weight: 600;
-        border-radius: 6px;
-        border: none;
-        transition: background-color 0.3s ease;
-      }
-      form button[type="submit"]:hover {
-        background-color: #1e40af;
-      }
-      @media (max-width: 480px) {
-        body {
-          padding: 10px;
-        }
-        button,
-        form button[type="submit"] {
-          width: 100%;
-          margin-bottom: 10px;
-        }
-        .buttons {
-          display: flex;
-          flex-direction: column;
-        }
-      }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <h1>Gestión de Tareas</h1>
-    <div id="tareas"></div>
+  <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+      <h1 class="text-2xl font-bold mb-4 text-center">Gestión de Tareas</h1>
 
-    <h2>Agregar Nueva Tarea</h2>
-    <form id="formTarea">
-      <input
-        type="text"
-        id="titulo"
-        placeholder="Título de la tarea"
-        required
-        autocomplete="off"
-      />
-      <textarea
-        id="descripcion"
-        placeholder="Descripción detallada"
-        rows="4"
-        required
-      ></textarea>
-      <input
-        type="number"
-        id="usuario_id"
-        placeholder="ID Usuario"
-        min="1"
-        required
-      />
-      <button type="submit">Agregar Tarea</button>
-    </form>
+      <div id="messageBox" class="hidden mb-4 p-3 rounded text-center"></div>
+
+      <!-- formulario para agregar tarea -->
+      <form id="addTaskForm" class="mb-6 space-y-4">
+        <input
+          type="text"
+          id="titulo"
+          placeholder="Titulo"
+          class="w-full p-2 border border-gray-300 rounded"
+          required
+        />
+        <textarea
+          id="descripcion"
+          placeholder="Descripcion"
+          class="w-full p-2 border border-gray-300 rounded"
+          rows="3"
+          required
+        ></textarea>
+        <select
+          id="estado"
+          class="w-full p-2 border border-gray-300 rounded"
+          required
+        >
+          <option value="pendiente">Pendiente</option>
+          <option value="completada">Completada</option>
+        </select>
+        <input
+          type="number"
+          id="usuario_id"
+          placeholder="ID de Usuario"
+          class="w-full p-2 border border-gray-300 rounded"
+          required
+        />
+        <button
+          type="submit"
+          class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+        >
+          Agregar Tarea
+        </button>
+      </form>
+
+      <!-- listas de tareas -->
+      <ul id="tasksList" class="space-y-3"></ul>
+    </div>
 
     <script>
-      let tareasCache = [];
+      const messageBox = document.getElementById("messageBox");
+      const tasksList = document.getElementById("tasksList");
+      const addTaskForm = document.getElementById("addTaskForm");
 
-      async function cargarTareas() {
+      // Mostrar los  mensajes
+      function showMessage(msg, type) {
+        messageBox.textContent = msg;
+        messageBox.className = `mb-4 p-3 rounded text-center ${
+          type === "success"
+            ? "bg-green-100 text-green-700"
+            : "bg-red-100 text-red-700"
+        }`;
+        messageBox.classList.remove("hidden");
+        setTimeout(() => messageBox.classList.add("hidden"), 3000);
+      }
+
+      // se carga y se muestra las tareas
+      async function loadTasks() {
         try {
           const res = await fetch("api.php?path=tareas");
-          if (!res.ok) throw new Error("Error al obtener tareas");
-          tareasCache = await res.json();
-          const contenedor = document.getElementById("tareas");
-          contenedor.innerHTML = "";
-          if (tareasCache.length === 0) {
-            contenedor.innerHTML = "<p>No hay tareas registradas.</p>";
+          if (!res.ok) throw new Error("error al obtener tareas");
+          const tasks = await res.json();
+          tasksList.innerHTML = "";
+          if (tasks.length === 0) {
+            tasksList.innerHTML =
+              '<li class="text-center text-gray-500">No hay tareas.</li>';
             return;
           }
-          tareasCache.forEach((t) => {
-            const div = document.createElement("div");
-            div.className = "tarea";
-            div.innerHTML = `
-              <strong>${t.titulo}</strong>
-              <p>${t.descripcion}</p>
-              <p class="estado">Estado: ${t.estado}</p>
-              <div class="buttons">
-                <button class="completar" onclick="marcarCompletada(${t.id})">Completar</button>
-                <button class="eliminar" onclick="eliminarTarea(${t.id})">Eliminar</button>
-              </div>
-            `;
-            contenedor.appendChild(div);
+          tasks.forEach((task) => {
+            const li = document.createElement("li");
+            li.className =
+              "p-3 bg-gray-50 rounded flex justify-between items-center shadow";
+
+            li.innerHTML = `
+            <div>
+              <h3 class="font-semibold ${
+                task.estado === "completada" ? "line-through text-gray-500" : ""
+              }">
+                ${task.titulo}
+              </h3>
+              <p class="text-sm text-gray-600">${task.descripcion}</p>
+              <p class="text-xs text-gray-400">Usuario ID: ${
+                task.usuario_id
+              }</p>
+            </div>
+            <div class="flex space-x-2">
+              <button onclick="toggleComplete(${task.id}, '${task.estado}')" 
+                class="px-2 py-1 text-sm rounded ${
+                  task.estado === "pendiente"
+                    ? "bg-green-500 text-white"
+                    : "bg-yellow-400 text-black"
+                }">
+                ${
+                  task.estado === "pendiente"
+                    ? "Marcar completada"
+                    : "Marcar pendiente"
+                }
+              </button>
+              <button onclick="deleteTask(${task.id})" 
+                class="px-2 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600">
+                Eliminar
+              </button>
+            </div>
+          `;
+            tasksList.appendChild(li);
           });
         } catch (error) {
-          alert(error.message);
+          showMessage("error al cargar tareas.", "error");
         }
       }
 
-      async function marcarCompletada(id) {
-        try {
-          const tarea = tareasCache.find((t) => t.id === id);
-          if (!tarea) throw new Error("Tarea no encontrada");
+      // agregar una nueva tarea
+      addTaskForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const titulo = document.getElementById("titulo").value.trim();
+        const descripcion = document.getElementById("descripcion").value.trim();
+        const estado = document.getElementById("estado").value;
+        const usuario_id = parseInt(
+          document.getElementById("usuario_id").value
+        );
 
+        if (!titulo || !descripcion || !estado || !usuario_id) {
+          showMessage("Por favor complete todos los campos.", "error");
+          return;
+        }
+
+        try {
+          const res = await fetch("api.php?path=tareas", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ titulo, descripcion, estado, usuario_id }),
+          });
+          const result = await res.json();
+          if (res.ok) {
+            showMessage(result.mensaje || "Tarea agregada", "success");
+            addTaskForm.reset();
+            loadTasks();
+          } else {
+            showMessage(result.error || "error al agregar la tarea.", "error");
+          }
+        } catch {
+          showMessage("error de conexion con el servidor.", "error");
+        }
+      });
+
+      // Cambiar estado el de tarea pendiente o completada
+      async function toggleComplete(id, currentState) {
+        const nuevoEstado =
+          currentState === "pendiente" ? "completada" : "pendiente";
+        try {
           const res = await fetch(`api.php?path=tareas/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              titulo: tarea.titulo,
-              descripcion: tarea.descripcion,
-              estado: "completada",
-              usuario_id: tarea.usuario_id, // para mantener referencia al usuario
+              titulo: "",
+              descripcion: "",
+              estado: nuevoEstado,
             }),
           });
-          if (!res.ok) throw new Error("No se pudo completar la tarea");
-          cargarTareas();
-        } catch (error) {
-          alert(error.message);
+
+          if (!res.ok) {
+            const err = await res.json();
+            showMessage(err.error || "error al actualizar tarea.", "error");
+          } else {
+            const resJson = await res.json();
+            showMessage(resJson.mensaje || "estado actualizado.", "success");
+            loadTasks();
+          }
+        } catch {
+          showMessage("error de conexion con el servidor.", "error");
         }
       }
 
-      async function eliminarTarea(id) {
+      // Eliminar tarea
+      async function deleteTask(id) {
+        if (!confirm("Queres eliminar esta tarea?")) return;
         try {
           const res = await fetch(`api.php?path=tareas/${id}`, {
             method: "DELETE",
           });
-          if (!res.ok) throw new Error("No se pudo eliminar la tarea");
-          cargarTareas();
-        } catch (error) {
-          alert(error.message);
+          const result = await res.json();
+          if (res.ok) {
+            showMessage(result.mensaje || "Tarea eliminada.", "success");
+            loadTasks();
+          } else {
+            showMessage(result.error || "error al eliminar la tarea.", "error");
+          }
+        } catch {
+          showMessage("error de conexion con el servidor.", "error");
         }
       }
 
-      document
-        .getElementById("formTarea")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const titulo = document.getElementById("titulo").value.trim();
-          const descripcion = document
-            .getElementById("descripcion")
-            .value.trim();
-          const usuario_id = document.getElementById("usuario_id").value.trim();
-
-          if (!titulo || !descripcion || !usuario_id) {
-            alert("Por favor completa todos los campos");
-            return;
-          }
-
-          try {
-            const res = await fetch("api.php?path=tareas", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                titulo,
-                descripcion,
-                estado: "pendiente",
-                usuario_id,
-              }),
-            });
-            if (!res.ok) throw new Error("No se pudo agregar la tarea");
-            e.target.reset();
-            cargarTareas();
-          } catch (error) {
-            alert(error.message);
-          }
-        });
-
-      // Carga inicial de tareas
-      cargarTareas();
+      // cargar las tareas al iniciar
+      loadTasks();
     </script>
   </body>
 </html>
