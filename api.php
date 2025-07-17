@@ -10,7 +10,7 @@ header("Content-Type: application/json");
 // se carga la configuracion de la base de datos desde un archivo externo
 $config = require 'config.php';
 
-// se conecta con la base de datos
+// se conecta a la base de datos de manera segura
 try {
     $pdo = new PDO(
         "pgsql:host={$config['db_host']};dbname={$config['db_name']}",
