@@ -1,93 +1,254 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Gestión de Tareas</title>
     <style>
       body {
-        font-family: Arial;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f7f9fc;
+        margin: 0;
         padding: 20px;
+        color: #333;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      h1,
+      h2 {
+        color: #1e40af;
+        margin-bottom: 16px;
+      }
+      #tareas {
+        margin-bottom: 40px;
       }
       .tarea {
-        border: 1px solid #ccc;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 15px 20px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 4px rgb(0 0 0 / 0.1);
+      }
+      .tarea strong {
+        font-size: 1.2em;
+        display: block;
+        margin-bottom: 8px;
+        color: #2563eb;
+      }
+      .tarea p {
+        margin: 5px 0;
+      }
+      .estado {
+        font-weight: 600;
+        color: #047857;
+      }
+      .buttons {
+        margin-top: 12px;
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        padding: 7px 14px;
+        font-size: 0.9em;
+        margin-right: 8px;
+        transition: background-color 0.2s ease;
+      }
+      button.completar {
+        background-color: #2563eb;
+        color: white;
+      }
+      button.completar:hover {
+        background-color: #1d4ed8;
+      }
+      button.eliminar {
+        background-color: #dc2626;
+        color: white;
+      }
+      button.eliminar:hover {
+        background-color: #b91c1c;
+      }
+      form {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgb(0 0 0 / 0.05);
+      }
+      form input[type="text"],
+      form textarea,
+      form input[type="number"] {
+        width: 100%;
         padding: 10px;
-        margin: 10px 0;
+        margin-bottom: 14px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1em;
+        resize: vertical;
+        box-sizing: border-box;
+        font-family: inherit;
+      }
+      form button[type="submit"] {
+        background-color: #2563eb;
+        color: white;
+        padding: 10px 18px;
+        font-weight: 600;
+        border-radius: 6px;
+        border: none;
+        transition: background-color 0.3s ease;
+      }
+      form button[type="submit"]:hover {
+        background-color: #1e40af;
+      }
+      @media (max-width: 480px) {
+        body {
+          padding: 10px;
+        }
+        button,
+        form button[type="submit"] {
+          width: 100%;
+          margin-bottom: 10px;
+        }
+        .buttons {
+          display: flex;
+          flex-direction: column;
+        }
       }
     </style>
   </head>
   <body>
-    <h1>Tareas</h1>
+    <h1>Gestión de Tareas</h1>
     <div id="tareas"></div>
 
-    <h2>Agregar Tarea</h2>
+    <h2>Agregar Nueva Tarea</h2>
     <form id="formTarea">
-      <input type="text" id="titulo" placeholder="Título" required /><br />
-      <textarea id="descripcion" placeholder="Descripción" required></textarea
-      ><br />
+      <input
+        type="text"
+        id="titulo"
+        placeholder="Título de la tarea"
+        required
+        autocomplete="off"
+      />
+      <textarea
+        id="descripcion"
+        placeholder="Descripción detallada"
+        rows="4"
+        required
+      ></textarea>
       <input
         type="number"
         id="usuario_id"
         placeholder="ID Usuario"
+        min="1"
         required
-      /><br />
-      <button type="submit">Agregar</button>
+      />
+      <button type="submit">Agregar Tarea</button>
     </form>
 
     <script>
+      let tareasCache = [];
+
       async function cargarTareas() {
-        const res = await fetch("/tareas");
-        const tareas = await res.json();
-        const contenedor = document.getElementById("tareas");
-        contenedor.innerHTML = "";
-        tareas.forEach((t) => {
-          contenedor.innerHTML += `
-          <div class="tarea">
-            <strong>${t.titulo}</strong><br>
-            ${t.descripcion}<br>
-            Estado: ${t.estado}<br>
-            <button onclick="marcarCompletada(${t.id})">Completar</button>
-            <button onclick="eliminarTarea(${t.id})">Eliminar</button>
-          </div>`;
-        });
+        try {
+          const res = await fetch("api.php?path=tareas");
+          if (!res.ok) throw new Error("Error al obtener tareas");
+          tareasCache = await res.json();
+          const contenedor = document.getElementById("tareas");
+          contenedor.innerHTML = "";
+          if (tareasCache.length === 0) {
+            contenedor.innerHTML = "<p>No hay tareas registradas.</p>";
+            return;
+          }
+          tareasCache.forEach((t) => {
+            const div = document.createElement("div");
+            div.className = "tarea";
+            div.innerHTML = `
+              <strong>${t.titulo}</strong>
+              <p>${t.descripcion}</p>
+              <p class="estado">Estado: ${t.estado}</p>
+              <div class="buttons">
+                <button class="completar" onclick="marcarCompletada(${t.id})">Completar</button>
+                <button class="eliminar" onclick="eliminarTarea(${t.id})">Eliminar</button>
+              </div>
+            `;
+            contenedor.appendChild(div);
+          });
+        } catch (error) {
+          alert(error.message);
+        }
       }
 
       async function marcarCompletada(id) {
-        await fetch(`/tareas/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            titulo: "...",
-            descripcion: "...",
-            estado: "completada",
-          }),
-        });
-        cargarTareas();
+        try {
+          const tarea = tareasCache.find((t) => t.id === id);
+          if (!tarea) throw new Error("Tarea no encontrada");
+
+          const res = await fetch(`api.php?path=tareas/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              titulo: tarea.titulo,
+              descripcion: tarea.descripcion,
+              estado: "completada",
+              usuario_id: tarea.usuario_id, // para mantener referencia al usuario
+            }),
+          });
+          if (!res.ok) throw new Error("No se pudo completar la tarea");
+          cargarTareas();
+        } catch (error) {
+          alert(error.message);
+        }
       }
 
       async function eliminarTarea(id) {
-        await fetch(`/tareas/${id}`, { method: "DELETE" });
-        cargarTareas();
+        try {
+          const res = await fetch(`api.php?path=tareas/${id}`, {
+            method: "DELETE",
+          });
+          if (!res.ok) throw new Error("No se pudo eliminar la tarea");
+          cargarTareas();
+        } catch (error) {
+          alert(error.message);
+        }
       }
 
       document
         .getElementById("formTarea")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
-          const titulo = document.getElementById("titulo").value;
-          const descripcion = document.getElementById("descripcion").value;
-          const usuario_id = document.getElementById("usuario_id").value;
-          await fetch("/tareas", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              titulo,
-              descripcion,
-              estado: "pendiente",
-              usuario_id,
-            }),
-          });
-          cargarTareas();
+          const titulo = document.getElementById("titulo").value.trim();
+          const descripcion = document
+            .getElementById("descripcion")
+            .value.trim();
+          const usuario_id = document.getElementById("usuario_id").value.trim();
+
+          if (!titulo || !descripcion || !usuario_id) {
+            alert("Por favor completa todos los campos");
+            return;
+          }
+
+          try {
+            const res = await fetch("api.php?path=tareas", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                titulo,
+                descripcion,
+                estado: "pendiente",
+                usuario_id,
+              }),
+            });
+            if (!res.ok) throw new Error("No se pudo agregar la tarea");
+            e.target.reset();
+            cargarTareas();
+          } catch (error) {
+            alert(error.message);
+          }
         });
 
+      // Carga inicial de tareas
       cargarTareas();
     </script>
   </body>
