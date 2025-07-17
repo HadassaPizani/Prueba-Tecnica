@@ -1,4 +1,4 @@
--- 1. crear tabla  de usuarios
+--crear tabla  de usuarios
 CREATE TABLE usuarios (
   id SERIAL PRIMARY KEY,
   nombre TEXT,
@@ -6,7 +6,7 @@ CREATE TABLE usuarios (
   fecha_registro TIMESTAMP DEFAULT NOW()
 );
 
--- 2. crear tabla  de tareas
+--crear tabla  de tareas
 CREATE TABLE tareas (
   id SERIAL PRIMARY KEY,
   titulo TEXT,
@@ -16,17 +16,35 @@ CREATE TABLE tareas (
   usuario_id INTEGER REFERENCES usuarios(id)
 );
 
--- 3. Consultas SQL:
+-- Consultas SQL:
 
--- a) Usuarios registrados en los ultimod  30 días
+--usuarios registrados en los ultimod  30 dias
 SELECT * FROM usuarios
 WHERE fecha_registro >= now() - INTERVAL '30 days';
 
--- b) actualizar el nombre de un usuario por ID
+-- actualizar el nombre de un usuario por ID
 UPDATE usuarios
-SET nombre = 'Nuevo Nombre'
+SET nombre = 'nuevo nombre'
 WHERE id = 1;
 
--- c) eliminar usuarios con mas de un año de antiguedad
+--eliminar usuarios con mas de un año de antiguedad
 DELETE FROM usuarios
 WHERE fecha_registro < NOW() - INTERVAL '1 year';
+
+-- Cosas agregadas 
+
+INSERT INTO tareas (titulo, descripcion, estado, usuario_id)
+VALUES ('Tarea 1', 'Descripcion de prueba', 'pendiente', 1);
+
+INSERT INTO usuarios (nombre, correo)
+VALUES ('Usuario de prueba', 'usuario@ejemplo.com');
+
+SELECT *
+FROM tareas
+
+SELECT *
+FROM usuarios
+
+
+
+
